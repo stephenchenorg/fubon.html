@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>薪資輸入介面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-50 p-8">
+<div id="app" class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">薪資輸入系統</h1>
+    
+    <!-- 第一個 Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4 text-gray-700">基本資料</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 委託單位代號 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    委託單位代號
+                </label>
+                <input
+                        v-model="form.unitCode"
+                        type="text"
+                        maxlength="7"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="請輸入 7 碼代號"
+                >
+                <p class="text-xs text-gray-500 mt-1">分行提供的 7 碼委託單位代號</p>
+            </div>
+            
+            <!-- 檢查身分證字號 -->
+            <div>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input
+                            v-model="form.checkIdNumber"
+                            type="checkbox"
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    >
+                    <span class="text-sm font-medium text-gray-700">檢查身分證字號</span>
+                </label>
+            </div>
+            
+            <!-- 選擇日期 (民國年月日) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    日期
+                </label>
+                <div class="flex space-x-2">
+                    <select
+                            v-model="form.year"
+                            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+                    </select>
+                    <select
+                            v-model="form.month"
+                            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option v-for="m in monthOptions" :key="m" :value="m">{{ m }}</option>
+                    </select>
+                    <select
+                            v-model="form.day"
+                            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 公司統一編號 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    公司統一編號
+                </label>
+                <input
+                        v-model="form.companyTaxId"
+                        type="text"
+                        maxlength="8"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="請輸入統一編號"
+                >
+            </div>
+        </div>
+    </div>
+    
+    <!-- 第二個 Section (Repeater) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-gray-700">員工薪資資料</h2>
+            <button
+                    @click="addEmployee"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+                + 新增員工
+            </button>
+        </div>
+        
+        <div v-for="(employee, index) in employees" :key="employee.id"
+             class="mb-4 p-4 border border-gray-200 rounded-lg">
+            <div class="flex justify-between items-start mb-3">
+                <span class="text-sm font-medium text-gray-600">員工 {{ index + 1 }}</span>
+                <button
+                        @click="removeEmployee(index)"
+                        class="text-red-600 hover:text-red-800 text-sm"
+                >
+                    刪除
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- 員工於本行之存款帳號 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        員工於本行之存款帳號
+                    </label>
+                    <input
+                            v-model="employee.accountNumber"
+                            type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="請輸入帳號"
+                    >
+                </div>
+                
+                <!-- 員工入帳薪資 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        員工入帳薪資
+                    </label>
+                    <input
+                            v-model="employee.salary"
+                            type="number"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="請輸入薪資"
+                    >
+                </div>
+                
+                <!-- 員工身份證字號 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        員工身份證字號
+                    </label>
+                    <input
+                            v-model="employee.idNumber"
+                            type="text"
+                            maxlength="10"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="請輸入身份證字號"
+                    >
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="employees.length === 0" class="text-center py-8 text-gray-500">
+            請點擊「新增員工」按鈕來添加員工資料
+        </div>
+    </div>
+    
+    <!-- 提交按鈕 -->
+    <div class="mt-6 flex justify-end">
+        <button
+                @click="submitForm"
+                class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+        >
+            下載 txt 檔案
+        </button>
+    </div>
+</div>
+
+<script>
+  const {createApp} = Vue;
+
+  createApp({
+    data() {
+      const today = new Date();
+      const rocYear = today.getFullYear() - 1911;
+      const currentMonth = today.getMonth() + 1;
+      const currentDay = today.getDate();
+
+      return {
+        form: {
+          unitCode: '',
+          checkIdNumber: false,
+          year: rocYear,
+          month: currentMonth,
+          day: currentDay,
+          companyTaxId: ''
+        },
+        employees: [],
+        nextId: 1
+      };
+    },
+    computed: {
+      yearOptions() {
+        const currentYear = new Date().getFullYear() - 1911;
+        const years = [];
+        for (let i = currentYear - 10; i <= currentYear + 1; i++) {
+          years.push(i);
+        }
+        return years;
+      },
+      monthOptions() {
+        return Array.from({length: 12}, (_, i) => i + 1);
+      },
+      dayOptions() {
+        const daysInMonth = new Date(this.form.year + 1911, this.form.month, 0).getDate();
+        return Array.from({length: daysInMonth}, (_, i) => i + 1);
+      }
+    },
+    methods: {
+      addEmployee() {
+        this.employees.push({
+          id: this.nextId++,
+          accountNumber: '',
+          salary: '',
+          idNumber: ''
+        });
+      },
+      removeEmployee(index) {
+        this.employees.splice(index, 1);
+      },
+      submitForm() {
+        console.log('表單資料:', {
+          form: this.form,
+          employees: this.employees
+        });
+        alert('表單已提交，請查看控制台');
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
