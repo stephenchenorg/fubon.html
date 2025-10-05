@@ -71,7 +71,9 @@
                         type="text"
                         maxlength="7"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        :class="{ 'border-red-500': form.unitCode && form.unitCode.length !== 7 }"
                 >
+                <p v-if="form.unitCode && form.unitCode.length !== 7" class="text-xs text-red-500 mt-1">必須是 7 碼</p>
             </div>
             
             <!-- 檢查身分證字號 -->
@@ -214,83 +216,133 @@
     </div>
     
     <!-- 提交按鈕 -->
-    <div class="mt-6 flex justify-end">
+    <div class="mt-6 flex flex-col items-end">
         <button
                 @click="submitForm"
-                class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                :disabled="employees.length === 0"
+                class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
             下載 txt 檔案
         </button>
+        <p v-if="employees.length === 0" class="text-xs text-red-500 mt-2">至少需要一位員工</p>
     </div>
 </div>
 
 <script>
-  const {createApp} = Vue;
+  const { createApp, ref, reactive, computed } = Vue;
 
   createApp({
-    data() {
+    setup() {
       const today = new Date();
       const rocYear = today.getFullYear() - 1911;
       const currentMonth = today.getMonth() + 1;
       const currentDay = today.getDate();
 
-      return {
-        form: {
-          unitCode: '',
-          checkIdNumber: false,
-          year: rocYear,
-          month: currentMonth,
-          day: currentDay,
-          companyTaxId: '',
-          disableCompanyTaxId: false
-        },
-        employees: [],
-        nextId: 1
-      };
-    },
-    computed: {
-      yearOptions() {
+      const form = reactive({
+        unitCode: '',
+        checkIdNumber: false,
+        year: rocYear,
+        month: currentMonth,
+        day: currentDay,
+        companyTaxId: '',
+        disableCompanyTaxId: false
+      });
+
+      const employees = ref([]);
+      const nextId = ref(1);
+
+      const yearOptions = computed(() => {
         const currentYear = new Date().getFullYear() - 1911;
         const years = [];
         for (let i = currentYear - 10; i <= currentYear + 1; i++) {
           years.push(i);
         }
         return years;
-      },
-      monthOptions() {
+      });
+
+      const monthOptions = computed(() => {
         return Array.from({length: 12}, (_, i) => i + 1);
-      },
-      dayOptions() {
-        const daysInMonth = new Date(this.form.year + 1911, this.form.month, 0).getDate();
+      });
+
+      const dayOptions = computed(() => {
+        const daysInMonth = new Date(form.year + 1911, form.month, 0).getDate();
         return Array.from({length: daysInMonth}, (_, i) => i + 1);
-      },
-      companyTaxIdError() {
-        if (this.form.disableCompanyTaxId || !this.form.companyTaxId) {
+      });
+
+      const companyTaxIdError = computed(() => {
+        if (form.disableCompanyTaxId || !form.companyTaxId) {
           return false;
         }
-        const taxId = this.form.companyTaxId.trim();
+        const taxId = form.companyTaxId.trim();
         return !/^\d{8}$/.test(taxId);
-      }
-    },
-    methods: {
-      addEmployee() {
-        this.employees.push({
-          id: this.nextId++,
+      });
+
+      const addEmployee = () => {
+        employees.value.push({
+          id: nextId.value++,
           accountNumber: '',
           salary: '',
           idNumber: ''
         });
-      },
-      removeEmployee(index) {
-        this.employees.splice(index, 1);
-      },
-      submitForm() {
-        console.log('表單資料:', {
-          form: this.form,
-          employees: this.employees
+      };
+
+      const removeEmployee = (index) => {
+        employees.value.splice(index, 1);
+      };
+
+      const submitForm = () => {
+        // 驗證委託單位代號長度
+        if (form.unitCode.length !== 7) {
+          alert('委託單位代號必須是 7 碼');
+          return;
+        }
+
+        // 計算發薪日期 (民國年月日，7碼)
+        const dateStr = String(form.year).padStart(3, '0') +
+                       String(form.month).padStart(2, '0') +
+                       String(form.day).padStart(2, '0');
+
+        // 計算薪資總額 (加上兩位小數點後補0到13碼)
+        const totalSalary = employees.value.reduce((sum, emp) => {
+          return sum + (parseFloat(emp.salary) || 0);
+        }, 0);
+        const totalSalaryStr = String(Math.round(totalSalary * 100)).padStart(13, '0');
+
+        // 生成第一行
+        let txtContent = `K${form.unitCode}00000************${dateStr}${totalSalaryStr}\n`;
+
+        // 生成員工資料行
+        employees.value.forEach(employee => {
+          const accountNumber = String(employee.accountNumber).padStart(14, '0');
+          const salary = String(Math.round((parseFloat(employee.salary) || 0) * 100)).padStart(13, '0');
+          const idNumber = employee.idNumber.toUpperCase().padEnd(10, ' ').substring(0, 10);
+
+          txtContent += `C${form.unitCode}00000${accountNumber}000000${salary}${idNumber}\n`;
         });
-        alert('表單已提交，請查看控制台');
-      }
+
+        // 下載檔案
+        const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `salary_${dateStr}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+
+      return {
+        form,
+        employees,
+        yearOptions,
+        monthOptions,
+        dayOptions,
+        companyTaxIdError,
+        addEmployee,
+        removeEmployee,
+        submitForm
+      };
     }
   }).mount('#app');
 </script>
