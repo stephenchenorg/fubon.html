@@ -3,7 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>薪資輸入介面</title>
+
+    <!-- Primary Meta Tags -->
+    <title>富邦銀行薪資轉帳工具 | Mac 可用的薪資上傳系統 | 線上薪資檔案產生器</title>
+    <meta name="title" content="富邦銀行薪資轉帳工具 | Mac 可用的薪資上傳系統">
+    <meta name="description" content="免費的富邦銀行薪資轉帳檔案產生工具，支援 Mac 和 Windows。線上填寫員工薪資資料，一鍵產生 TXT 檔案上傳至富邦銀行系統。完全開源、本地處理、資料不上傳。">
+    <meta name="keywords" content="富邦銀行,薪資轉帳,Mac 薪資上傳,富邦薪資,薪資檔案產生器,員工薪資,線上工具,開源工具,薪資系統,銀行轉帳">
+    <meta name="author" content="Stephen Chen">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://fubon-salary.csstudio.tw/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fubon-salary.csstudio.tw/">
+    <meta property="og:title" content="富邦銀行薪資轉帳工具 | Mac 可用的薪資上傳系統">
+    <meta property="og:description" content="免費的富邦銀行薪資轉帳檔案產生工具，支援 Mac 和 Windows。線上填寫員工薪資資料，一鍵產生 TXT 檔案。完全開源、本地處理、資料不上傳。">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="富邦銀行薪資轉帳工具">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://fubon-salary.csstudio.tw/">
+    <meta property="twitter:title" content="富邦銀行薪資轉帳工具 | Mac 可用的薪資上傳系統">
+    <meta property="twitter:description" content="免費的富邦銀行薪資轉帳檔案產生工具，支援 Mac 和 Windows。線上填寫員工薪資資料，一鍵產生 TXT 檔案。">
+
+    <!-- Additional SEO Meta Tags -->
+    <meta name="language" content="Traditional Chinese">
+    <meta name="revisit-after" content="7 days">
+    <meta name="distribution" content="global">
+    <meta name="rating" content="general">
+
+    <!-- Geo Tags -->
+    <meta name="geo.region" content="TW">
+    <meta name="geo.placename" content="Taiwan">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
@@ -86,7 +121,7 @@
             </div>
             
             <!-- 檢查身分證字號 -->
-            <div>
+            <!-- <div>
                 <label class="flex items-center space-x-2 cursor-pointer">
                     <input
                             v-model="form.checkIdNumber"
@@ -95,7 +130,7 @@
                     >
                     <span class="text-sm font-medium text-gray-700">是否檢查身分證字號</span>
                 </label>
-            </div>
+            </div> -->
             
             <!-- 選擇日期 (民國年月日) -->
             <div>
@@ -125,7 +160,7 @@
             </div>
             
             <!-- 公司統一編號 -->
-            <div>
+            <!-- <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     公司統一編號
                 </label>
@@ -148,7 +183,7 @@
                     </button>
                 </div>
                 <p v-if="companyTaxIdError" class="text-xs text-red-500 mt-1">請輸入 8 位數字</p>
-            </div>
+            </div> -->
         </div>
     </div>
     
@@ -184,9 +219,10 @@
                     </label>
                     <input
                             v-model="employee.accountNumber"
+                            @input="validateAccountNumber(employee)"
                             type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="請輸入帳號"
+                            placeholder="請輸入帳號 (可使用數字、- 或 _)"
                     >
                 </div>
                 
@@ -235,10 +271,20 @@
         </button>
         <p v-if="employees.length === 0" class="text-xs text-red-500 mt-2">至少需要一位員工</p>
     </div>
+
+    <!-- Back to Top 按鈕 -->
+    <button
+            v-show="showBackToTop"
+            @click="scrollToTop"
+            class="fixed bottom-8 left-8 px-4 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+            title="回到頂端"
+    >
+        ↑
+    </button>
 </div>
 
 <script>
-  const { createApp, ref, reactive, computed } = Vue;
+  const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
 
   createApp({
     setup() {
@@ -259,6 +305,7 @@
 
       const employees = ref([]);
       const nextId = ref(1);
+      const showBackToTop = ref(false);
 
       const yearOptions = computed(() => {
         const currentYear = new Date().getFullYear() - 1911;
@@ -299,11 +346,33 @@
         employees.value.splice(index, 1);
       };
 
+      const validateAccountNumber = (employee) => {
+        // 只允許數字、- 和 _
+        employee.accountNumber = employee.accountNumber.replace(/[^0-9\-_]/g, '');
+      };
+
       const submitForm = () => {
         // 驗證委託單位代號長度
         if (form.unitCode.length !== 7) {
           alert('委託單位代號必須是 7 碼');
           return;
+        }
+
+        // 驗證所有員工資料是否完整
+        for (let i = 0; i < employees.value.length; i++) {
+          const emp = employees.value[i];
+          if (!emp.accountNumber || !emp.accountNumber.trim()) {
+            alert(`員工 ${i + 1} 的存款帳號不能為空`);
+            return;
+          }
+          if (!emp.salary || emp.salary === '' || parseFloat(emp.salary) <= 0) {
+            alert(`員工 ${i + 1} 的入帳薪資不能為空或零`);
+            return;
+          }
+          if (!emp.idNumber || !emp.idNumber.trim()) {
+            alert(`員工 ${i + 1} 的身份證字號不能為空`);
+            return;
+          }
         }
 
         // 計算發薪日期 (民國年月日，7碼)
@@ -322,7 +391,9 @@
 
         // 生成員工資料行
         employees.value.forEach(employee => {
-          const accountNumber = String(employee.accountNumber).padStart(14, '0');
+          // 移除帳號中的所有非數字字元,然後左邊補0到14碼
+          const accountNumberDigitsOnly = String(employee.accountNumber).replace(/\D/g, '');
+          const accountNumber = accountNumberDigitsOnly.padStart(14, '0');
           const salary = String(Math.round((parseFloat(employee.salary) || 0) * 100)).padStart(13, '0');
           const idNumber = employee.idNumber.toUpperCase().padEnd(10, ' ').substring(0, 10);
 
@@ -341,6 +412,25 @@
         URL.revokeObjectURL(url);
       };
 
+      const scrollToTop = () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      };
+
+      const handleScroll = () => {
+        showBackToTop.value = window.scrollY > 200;
+      };
+
+      onMounted(() => {
+        window.addEventListener('scroll', handleScroll);
+      });
+
+      onUnmounted(() => {
+        window.removeEventListener('scroll', handleScroll);
+      });
+
       return {
         form,
         employees,
@@ -350,7 +440,10 @@
         companyTaxIdError,
         addEmployee,
         removeEmployee,
-        submitForm
+        validateAccountNumber,
+        submitForm,
+        scrollToTop,
+        showBackToTop
       };
     }
   }).mount('#app');
