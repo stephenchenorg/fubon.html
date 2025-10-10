@@ -211,7 +211,7 @@
                 </button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- 員工於本行之存款帳號 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -233,12 +233,13 @@
                     </label>
                     <input
                             v-model="employee.salary"
-                            type="number"
+                            @input="validateSalary(employee)"
+                            type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="請輸入薪資"
+                            placeholder="請輸入薪資 (只能輸入數字)"
                     >
                 </div>
-                
+
                 <!-- 員工身份證字號 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -250,6 +251,19 @@
                             maxlength="10"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="請輸入身份證字號"
+                    >
+                </div>
+
+                <!-- 備註 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        備註
+                    </label>
+                    <input
+                            v-model="employee.note"
+                            type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="選填"
                     >
                 </div>
             </div>
@@ -338,7 +352,8 @@
           id: nextId.value++,
           accountNumber: '',
           salary: '',
-          idNumber: ''
+          idNumber: '',
+          note: ''
         });
       };
 
@@ -349,6 +364,11 @@
       const validateAccountNumber = (employee) => {
         // 只允許數字、- 和 _
         employee.accountNumber = employee.accountNumber.replace(/[^0-9\-_]/g, '');
+      };
+
+      const validateSalary = (employee) => {
+        // 只允許數字
+        employee.salary = employee.salary.replace(/[^0-9]/g, '');
       };
 
       const submitForm = () => {
@@ -441,6 +461,7 @@
         addEmployee,
         removeEmployee,
         validateAccountNumber,
+        validateSalary,
         submitForm,
         scrollToTop,
         showBackToTop
