@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node generate_salary_file.js:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(file:*)"
+    ]
+  }
+}
